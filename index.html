@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat Room</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        ul { list-style-type: none; margin: 0; padding: 0; }
+        li { padding: 8px; margin-bottom: 10px; background: #f4f4f4; }
+        input { padding: 10px; width: 80%; }
+        button { padding: 10px; }
+    </style>
+</head>
+<body>
+    <ul id="messages"></ul>
+    <form id="form" action="">
+        <input id="name" placeholder="Enter your name" autocomplete="off" /><br>
+        <input id="input" placeholder="Type a message" autocomplete="off" /><button>Send</button>
+    </form>
+    <div>
+        <h3>Connected Users:</h3>
+        <ul id="user-list"></ul>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        var socket = io();
+
+        var form = document.getElementById('form');
+        var nameInput = document.getElementById('name');
+        var messageInput = document.getElementById('input');
+        var userList = document.getElementById('user-list');
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            if (nameInput.value && messageInput.value) {
+                socket.emit('set name', nameInput.value);
+                socket.emit('chat message', messageInput.value);
+                messageInput.value = '';
+            }
+        });
+
+        socket.on('chat message', function(msg) {
+            var item = document.createElement('li');
+            item.textContent = `${msg.user}: ${msg.text}`;
+            document.getElementById('messages').appendChild(item);
+            window.scrollTo(0, document.body.scrollHeight);
+        });
+
+        socket.on('user banned', function(user) {
+            var item = document.createElement('li');
+            item.textContent = `User ${user} has been banned.`;
+            item.style.color = 'red';
+            document.getElementById('messages').appendChild(item);
+            window.scrollTo(0, document.body.scrollHeight);
+        });
+
+        socket.on('user unbanned', function(user) {
+            var item = document.createElement('li');
+            item.textContent = `User ${user} has been unbanned.`;
+            item.style.color = 'green';
+            document.getElementById('messages').appendChild(item);
+            window.scrollTo(0, document.body.scrollHeight);
+        });
+
+        socket.on('user protected', function(user) {
+            var item = document.createElement('li');
+            item.textContent = `User ${user} is now protected from bans.`;
+            item.style.color = 'blue';
+            document.getElementById('messages').appendChild(item);
+            window.scrollTo(0, document.body.scrollHeight);
+        });
+
+        socket.on('user unprotected', function(user) {
+            var item = document.createElement('li');
+            item.textContent = `User ${user} is no longer protected from bans.`;
+            item.style.color = 'orange';
+            document.getElementById('messages').appendChild(item);
+            window.scrollTo(0, document.body.scrollHeight);
+        });
+
+        socket.on('banned', function() {
+            alert('You have been banned from the chat.');
+        });
+
+        socket.on('disconnected', function() {
+            alert('You have been disconnected from the chat. Consider this a warning.');
+            socket.disconnect();
+        });
+
+        socket.on('user list', function(users) {
+            userList.innerHTML = '';
+            users.forEach(function(user) {
+                var item = document.createElement('li');
+                item.textContent = user;
+                userList.appendChild(item);
+            });
+        });
+
+        socket.on('all users banned except protected', function() {
+            var item = document.createElement('li');
+            item.textContent = 'All users except those with ban protection have been banned. This is considered a server nuke.';
+            item.style.color = 'red';
+            document.getElementById('messages').appendChild(item);
+            window.scrollTo(0, document.body.scrollHeight);
+alert('The server has been nuked. The admin was alerted. The server may be restarted.');
+alert('This is the console. Please not that if the server is restarted, messages will no longer work until it is fully restarted.');
+        });
+    </script>
+</body>
+</html>
